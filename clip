@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Lanzador de la máquina de clips.
+#   ./clip "<link de Kick / YouTube / Twitch>" [--start 1:00:00 --end 2:00:00]
+# Cualquier subcomando de clipsmith también funciona:  ./clip --help
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+cd "$HERE/clipsmith"
+
+# ffmpeg con libass (subtítulos quemados). El ffmpeg normal de Homebrew no lo trae.
+FFULL="$(brew --prefix ffmpeg-full 2>/dev/null || true)"
+[ -n "$FFULL" ] && [ -x "$FFULL/bin/ffmpeg" ] && export PATH="$FFULL/bin:$PATH"
+
+# Si el primer argumento es un link, usamos el comando `url`.
+if [[ "${1:-}" == http* ]]; then
+  exec .venv/bin/clipsmith url "$@"
+fi
+exec .venv/bin/clipsmith "$@"

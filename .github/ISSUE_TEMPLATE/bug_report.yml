@@ -1,0 +1,32 @@
+name: 🐛 Bug report
+description: Something failed or a clip came out wrong
+labels: [bug]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: Stream URL
+      description: Kick / Twitch / YouTube link (and the minute, if relevant)
+  - type: textarea
+    id: command
+    attributes:
+      label: Command you ran
+      render: bash
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened vs. what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log output
+      description: Remove any API keys or personal paths first.
+      render: text
+  - type: input
+    id: env
+    attributes:
+      label: OS / Python / ffmpeg version

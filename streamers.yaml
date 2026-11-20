@@ -1,0 +1,175 @@
+# Radar de streamers. Edita libremente: agrega/quita gente o canales.
+# platform: handle  (kick = slug del canal, twitch = login, youtube = @handle)
+# tier: 1 = vigilar siempre, 2 = vigilar si juegan GTA
+# permiso: anota aquí si tiene campaña de clipping (Whop/Content Rewards) o te dio permiso.
+
+streamers:
+  # ───────────────────────── Habla inglesa ─────────────────────────
+  - name: IShowSpeed
+    lang: en
+    tier: 1
+    channels: {youtube: "@IShowSpeed", twitch: ishowspeed}   # Kick "ishowspeed" = imitador (3k seguidores)
+  - name: xQc
+    lang: en
+    tier: 1
+    channels: {kick: xqc, twitch: xqc, youtube: "@xQcOW"}
+  - name: Kai Cenat
+    lang: en
+    tier: 1
+    channels: {twitch: kaicenat, youtube: "@KaiCenat"}
+  - name: Adin Ross
+    lang: en
+    tier: 1
+    channels: {kick: adinross, youtube: "@AdinRoss"}
+  - name: N3on
+    lang: en
+    tier: 1
+    channels: {kick: n3on}
+  - name: Jynxzi
+    lang: en
+    tier: 2
+    channels: {twitch: jynxzi, youtube: "@Jynxzi"}
+  - name: CaseOh
+    lang: en
+    tier: 1
+    channels: {twitch: caseoh_, youtube: "@caseoh"}
+  - name: Sketch
+    lang: en
+    tier: 2
+    channels: {twitch: sketch}   # verificar: solo 99k seguidores
+  - name: Fanum
+    lang: en
+    tier: 2
+    channels: {twitch: fanum}
+  - name: Duke Dennis
+    lang: en
+    tier: 2
+    channels: {}   # "dukedennis" en Twitch tiene 80 seguidores: buscar su canal real
+  - name: Agent00
+    lang: en
+    tier: 2
+    channels: {twitch: agent00}
+  - name: TheBurntPeanut
+    lang: en
+    tier: 2
+    channels: {twitch: theburntpeanut}
+  - name: Summit1g
+    lang: en
+    tier: 1
+    channels: {twitch: summit1g}
+  - name: HasanAbi
+    lang: en
+    tier: 2
+    channels: {twitch: hasanabi}
+  - name: Moistcr1tikal
+    lang: en
+    tier: 2
+    channels: {twitch: moistcr1tikal, youtube: "@penguinz0"}
+  - name: Plaqueboymax
+    lang: en
+    tier: 2
+    channels: {twitch: plaqueboymax}
+  - name: Stable Ronaldo
+    lang: en
+    tier: 2
+    channels: {twitch: stableronaldo}
+  - name: shroud
+    lang: en
+    tier: 2
+    channels: {twitch: shroud}
+  - name: Ludwig
+    lang: en
+    tier: 2
+    channels: {youtube: "@ludwig"}
+
+  # ───────────────────────── Habla hispana ─────────────────────────
+  - name: Ibai
+    lang: es
+    tier: 1
+    channels: {twitch: ibai, youtube: "@IbaiLlanos"}
+  - name: AuronPlay
+    lang: es
+    tier: 1
+    channels: {twitch: auronplay, youtube: "@auronplay"}
+  - name: Rubius
+    lang: es
+    tier: 1
+    channels: {twitch: rubius, youtube: "@elrubiusOMG"}
+  - name: Westcol
+    lang: es
+    tier: 1
+    channels: {kick: westcol, twitch: westcol}   # YouTube: handle por confirmar
+  - name: DjMaRiiO
+    lang: es
+    tier: 1
+    channels: {youtube: "@DjMaRiiO", twitch: djmariio}
+  - name: Vegetta777
+    lang: es
+    tier: 1
+    channels: {youtube: "@vegetta777", twitch: vegetta777}
+  - name: TheGrefg
+    lang: es
+    tier: 1
+    channels: {twitch: thegrefg, youtube: "@TheGrefg"}
+  - name: Spreen
+    lang: es
+    tier: 1
+    channels: {twitch: elspreen, kick: spreen, youtube: "@spreen"}
+  - name: Juansguarnizo
+    lang: es
+    tier: 1
+    channels: {twitch: juansguarnizo, kick: juansguarnizo, youtube: "@juansguarnizo"}
+  - name: Coscu
+    lang: es
+    tier: 1
+    channels: {kick: coscu, twitch: coscu}
+  - name: Illojuan
+    lang: es
+    tier: 1
+    channels: {twitch: illojuan, youtube: "@illojuan"}
+  - name: Robleis
+    lang: es
+    tier: 2
+    channels: {kick: robleis}
+  - name: ElMariana
+    lang: es
+    tier: 2
+    channels: {twitch: elmariana}
+  - name: Rivers
+    lang: es
+    tier: 2
+    channels: {twitch: rivers_gg}
+  - name: Quackity
+    lang: es
+    tier: 2
+    channels: {twitch: quackity}
+  - name: Willyrex
+    lang: es
+    tier: 1
+    channels: {youtube: "@Willyrex", twitch: willyrex}
+  - name: Fernanfloo
+    lang: es
+    tier: 2
+    channels: {youtube: "@Fernanfloo"}
+  - name: ByViruZz
+    lang: es
+    tier: 1
+    channels: {youtube: "@byViruZz", twitch: byviruzz}
+  - name: MrStiven
+    lang: es
+    tier: 2
+    channels: {youtube: "@MrStivenTC"}
+  - name: AriGameplays
+    lang: es
+    tier: 2
+    channels: {twitch: arigameplays}
+
+  # ──────────────── Otros con picos enormes en el lanzamiento de GTA 6 ────────────────
+  - name: alanzoka
+    lang: pt
+    tier: 2
+    channels: {twitch: alanzoka}
+  - name: HoneyMad
+    lang: ru
+    tier: 2
+    channels: {twitch: honeymad}
