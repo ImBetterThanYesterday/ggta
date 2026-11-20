@@ -141,7 +141,8 @@ def publish_cmd(
                 "Authorization": f"Apikey {key}",
                 # one key per clip + target networks + attempt hour: retries of a failed
                 # network must not be deduplicated into the original job
-                "Idempotency-Key": re.sub(r"[^\w-]", "_", f"{folder.parent.name}_{folder.name}"
+                "Idempotency-Key": re.sub(r"[^A-Za-z0-9_-]", "_",  # headers must be ASCII
+                                          f"{folder.parent.name}_{folder.name}"
                                           f"_{'-'.join(targets)}_{datetime.now(UTC):%Y%m%d%H}")[-120:],
             }, data=form, files={"video": ("video.mp4", fh, "video/mp4")}, timeout=600)
         try:
