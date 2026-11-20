@@ -2,7 +2,7 @@
 name = "ggta"
 version = "0.3.0"
 description = "Kick / Twitch / YouTube streams -> AI-selected vertical clips with hooks, captions and auto-publishing."
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"  # onnxruntime (faster-whisper) has no 3.14 wheels yet
 readme = "README.md"
 license = { text = "MIT" }
 authors = [

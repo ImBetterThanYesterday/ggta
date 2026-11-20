@@ -93,6 +93,7 @@ def run_vod(
         console.print(f"[magenta]canto:[/magenta] {len(songs)} momentos con canción")
         peaks = songs + [p for p in peaks if all(abs(p.t - q.t) > 120 for q in songs)]
     peaks = merge_heatmap(peaks, vc.signal_clips, top=top + 6)
+    peaks = peaks[:top]  # --top is a hard cap (songs first, then chat/loudness/heatmap)
     if exclude:
         from .utils import _parse_start_at
 

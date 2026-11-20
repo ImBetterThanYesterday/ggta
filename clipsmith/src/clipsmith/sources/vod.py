@@ -85,6 +85,20 @@ class VodChat:
 # --------------------------------------------------------------------------- full chat
 
 
+def _load_chat(path: Path) -> list[ChatMessage] | None:
+    """Full chats of finished streams never change: reuse the first download."""
+    if not path.exists():
+        return None
+    return [ChatMessage(**m) for m in json.loads(path.read_text(encoding="utf-8"))]
+
+
+def _save_chat(path: Path, msgs: list[ChatMessage]) -> None:
+    if not msgs:  # don't cache a failed/empty download
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps([vars(m) for m in msgs], ensure_ascii=False), encoding="utf-8")
+
+
 def fetch_full_chat(url: str, work_dir: Path) -> VodChat:
     platform = detect_platform(url)
     if platform == "youtube":
@@ -109,14 +123,22 @@ def fetch_full_chat(url: str, work_dir: Path) -> VodChat:
         ls = meta.get("livestream") or {}
         dur = (ls.get("duration") or 0) / 1000
         start = datetime.fromisoformat(ls["start_time"]).astimezone(UTC)
-        log.info("kick: downloading full chat (%.1f h ≈ %.0f min)", dur / 3600, dur / 5 / 4 / 60)
-        msgs = _kick_chat(ls["channel_id"], start, 0, dur)
+        cache = work_dir / "vod_chat" / f"kick_{uuid}.json"
+        msgs = _load_chat(cache)
+        if msgs is None:
+            log.info("kick: downloading full chat (%.1f h ≈ %.0f min)", dur / 3600, dur / 5 / 4 / 60)
+            msgs = _kick_chat(ls["channel_id"], start, 0, dur)
+            _save_chat(cache, msgs)
         return VodChat("kick", url, ls.get("session_title", ""),
                        (ls.get("channel") or {}).get("slug", ""), dur, msgs, [])
 
     vod = re.search(r"(\d{6,})", url).group(1)  # type: ignore[union-attr]
     info = _ytdlp_info(f"https://www.twitch.tv/videos/{vod}")
-    msgs = _twitch_chat_range(vod, 0, 0)
+    cache = work_dir / "vod_chat" / f"twitch_{vod}.json"
+    msgs = _load_chat(cache)
+    if msgs is None:
+        msgs = _twitch_chat_range(vod, 0, 0)
+        _save_chat(cache, msgs)
     return VodChat("twitch", f"https://www.twitch.tv/videos/{vod}", info.get("title", ""),
                    info.get("uploader", ""), float(info.get("duration") or 0), msgs, [])
 

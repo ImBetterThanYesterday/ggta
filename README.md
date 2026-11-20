@@ -41,7 +41,13 @@ so you don't pay per-token API costs. You can also use API keys or a local Ollam
 
 ## Quick start
 
-Requirements: Python 3.11+, [uv](https://docs.astral.sh/uv/) (or pip), `ffmpeg`, Node.js (yt-dlp uses it for YouTube), and the `claude` or `codex` CLI logged in.
+Requirements:
+
+- Python **3.11–3.13**. `uv venv` picks 3.12 automatically from `clipsmith/.python-version`. 3.14 isn't supported yet because `onnxruntime` has no wheels for it.
+- [uv](https://docs.astral.sh/uv/) (or pip), `ffmpeg` and Node.js. yt-dlp uses Node.js for YouTube.
+- An AI CLI that is logged in. The default is the **Codex CLI** (`codex`, your ChatGPT plan). To use **Claude Code** (`claude`, then `/login`), set `llm.provider: claude_cli` and `hook.provider: claude_cli` in `clipsmith/config.yaml`.
+
+The first run downloads the Whisper speech model, which is about 500 MB.
 
 ```bash
 git clone https://github.com/ImBetterThanYesterday/ggta.git

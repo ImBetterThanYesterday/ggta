@@ -41,7 +41,7 @@ El proceso:
 4. La IA lee la transcripción y lo que escribió el chat. Descarta lo flojo y corta lo bueno en 20–60 s.
 5. Renderiza con la cara del streamer arriba, el juego abajo y subtítulos estilo TikTok.
 
-Los clips quedan en `clipsmith/out/<canal>_<título>/`, con la hora del stream en el nombre de cada archivo.
+Cada clip queda en su propia carpeta, `clipsmith/out/<canal>_<título>/<hora>_<titulo>/`, con `video.mp4` y `publicar.txt`.
 
 Si YouTube solo guardó las primeras ~12 h de un directo más largo, la máquina ignora el chat posterior.
 
@@ -138,6 +138,23 @@ En `clipsmith/config.yaml`, bajo `llm.provider`:
 | `ollama` | Una IA local y gratis (menos lista) | Necesita instalar Ollama |
 
 Con la suscripción no pagas tokens, pero cada momento tarda unos 20 s y gasta del límite de uso de tu plan.
+
+## Instalación (primera vez, en un computador nuevo)
+
+```bash
+git clone https://github.com/ImBetterThanYesterday/ggta.git
+cd ggta/clipsmith
+uv venv && uv pip install -e ".[dev]" "yt-dlp[default]" edge-tts pillow "opencv-python-headless<5"
+cp .env.example .env
+cd ..
+./clip --help
+```
+
+Necesitas:
+
+- **uv**, **ffmpeg** y **Node.js**. En Mac: `brew install uv ffmpeg node`.
+- **Python:** `uv venv` usa Python 3.12 automáticamente. Python 3.14 todavía no funciona.
+- **La primera vez** se baja el modelo de voz a texto, que pesa unos 500 MB.
 
 ## Configuración de una sola vez
 
