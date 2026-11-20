@@ -28,7 +28,7 @@ dependencies = [
     "rich>=13.7",
     "python-dotenv>=1.0",
     "faster-whisper>=1.0",
-    "av<16",  # faster-whisper 1.2 passes metadata_errors, removed in PyAV 16+
+    "av<19",  # faster-whisper 1.2 passes metadata_errors, removed in PyAV 16+
     "yt-dlp[default]>=2026.10",  # Kick/YouTube sources
     "chat-downloader>=0.2",
     "twitch-dl>=3.3",
