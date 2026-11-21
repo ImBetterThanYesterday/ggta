@@ -61,6 +61,17 @@ Para desactivarla, usa `--no-bulla`.
 
 Junto a cada video queda un `.txt` con título, descripción y hashtags listos para publicar.
 
+**Cámara del streamer:** la máquina detecta el recuadro completo de la webcam (la parte de la imagen que casi no cambia alrededor de la cara), así que nunca corta la cara a la mitad. Si en un momento no encuentra la cara, usa la posición de la cámara que encontró en otro momento del mismo stream.
+
+**Volver a renderizar** (después de una mejora, sin bajar nada ni gastar IA):
+
+```bash
+./clip rerender                 # todos los clips de clipsmith/out/
+./clip rerender pileta grefg    # solo las carpetas que contengan esas palabras
+```
+
+Además de `video.mp4`, cada clip queda con un `video_web.mp4` de menos de 10 MB y la mejor calidad posible, para subirlo desde el navegador.
+
 ## Publicar (Upload-Post)
 
 Una sola vez: pega tu API key en `clipsmith/.env`, en la línea `UPLOAD_POST_API_KEY=`.

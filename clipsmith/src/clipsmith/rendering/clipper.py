@@ -193,7 +193,7 @@ def _cut_smart(
         amap = "0:a?"
     cmd += [
         "-filter_complex", fc, "-map", "[out]", "-map", amap,
-        "-c:v", "libx264", "-preset", "faster", "-crf", "19", "-profile:v", "high",
+        "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-profile:v", "high",
         "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-b:a", "160k",
         "-t", f"{end - start:.3f}", "-movflags", "+faststart", str(out_path),
     ]

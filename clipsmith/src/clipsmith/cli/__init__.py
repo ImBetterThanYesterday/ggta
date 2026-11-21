@@ -10,6 +10,7 @@ from .clip import publish_cmd as youtube_publish_cmd
 from .cloud import cloud_app
 from .live import live_cmd, radar_cmd
 from .publish import publish_cmd, status_cmd
+from .rerender import rerender_cmd
 from .run import process, run_vod, serve, watch, whoami
 from .setup import check_ollama, detect_webcam_cmd, setup
 from .url import url_cmd
@@ -33,6 +34,7 @@ app.command("radar")(radar_cmd)
 app.command("live")(live_cmd)
 app.command("clip")(clip_cmd)
 app.command("reframe")(reframe_cmd)
+app.command("rerender")(rerender_cmd)
 app.command("publish-youtube")(youtube_publish_cmd)  # upstream: direct YouTube OAuth
 app.command()(setup)
 app.command("check-ollama")(check_ollama)

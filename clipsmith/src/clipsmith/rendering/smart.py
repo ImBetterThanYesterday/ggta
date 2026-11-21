@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 OUT_W, OUT_H = 1080, 1920
 CAM_PANEL_H = 700  # top panel height when a facecam exists
 _CACHE = "facecam.json"
+_SMALL_W = 480  # analysis width for the static-overlay search
 
 
 def probe_size(mp4: Path) -> tuple[int, int]:
@@ -33,14 +34,31 @@ def probe_size(mp4: Path) -> tuple[int, int]:
     return int(w), int(h)
 
 
-def detect_facecam(mp4: Path, cache_dir: Path, samples: int = 16) -> list[int] | None:
-    """Return the facecam crop [x, y, w, h] in source pixels, or None."""
+def _stream_key(cache_dir: Path) -> str:
+    """work/<stream>_p<sec>/ -> <stream> (all moments of one stream share a layout)."""
+    name = cache_dir.name
+    return name.rsplit("_p", 1)[0] if "_p" in name else name
+
+
+def _stream_cache(cache_dir: Path) -> Path:
+    return cache_dir.parent / "facecam_by_stream.json"
+
+
+def detect_facecam(mp4: Path, cache_dir: Path, samples: int = 24) -> list[int] | None:
+    """Return the facecam crop [x, y, w, h] in source pixels, or None.
+
+    1. find the streamer's face (same spot in many frames),
+    2. snap to the webcam overlay's borders (edges that stay put while the
+       gameplay moves), so we crop the whole cam, never half a face,
+    3. fall back to the layout found in another moment of the same stream.
+    """
     cache = cache_dir / _CACHE
     if cache.exists():
         data = json.loads(cache.read_text())
         return data or None
     try:
         import cv2  # type: ignore[import-untyped]
+        import numpy as np
     except ImportError:
         log.warning("opencv not installed -> no facecam detection")
         return None
@@ -50,11 +68,12 @@ def detect_facecam(mp4: Path, cache_dir: Path, samples: int = 16) -> list[int] |
     dur = video_duration(mp4)
     cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
     rects: list[tuple[int, int, int, int]] = []
+    small: list = []
     frames = 0
     W = H = 0
     with tempfile.TemporaryDirectory() as tmp:
         for i in range(samples):
-            t = dur * (0.05 + 0.9 * i / max(1, samples - 1))
+            t = dur * (0.03 + 0.94 * i / max(1, samples - 1))
             png = Path(tmp) / f"f{i}.png"
             if not _extract_frame(mp4, t, png):
                 continue
@@ -64,38 +83,110 @@ def detect_facecam(mp4: Path, cache_dir: Path, samples: int = 16) -> list[int] |
             frames += 1
             H, W = img.shape[:2]
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            small.append(cv2.resize(gray, (_SMALL_W, int(H * _SMALL_W / W))).astype(np.float32))
             short = min(W, H)
             faces = cascade.detectMultiScale(
-                gray, scaleFactor=1.1, minNeighbors=6,
-                minSize=(int(short * 0.04), int(short * 0.04)),
+                gray, scaleFactor=1.08, minNeighbors=5,
+                minSize=(int(short * 0.035), int(short * 0.035)),
                 maxSize=(int(short * 0.4), int(short * 0.4)),
             )
             rects += [tuple(int(v) for v in f) for f in faces]
     result: list[int] | None = None
     if rects and frames:
         (fx, fy, fw, fh), count = _cluster_rects(rects)[0]
-        if count >= 0.4 * frames:
-            result = _expand_face(fx, fy, fw, fh, W, H)
-            log.info("facecam: face %s in %d/%d frames -> crop %s", (fx, fy, fw, fh), count, frames, result)
+        if count >= 0.3 * frames:
+            box = _overlay_box(small, fx, fy, fw, fh, W, H) if len(small) >= 6 else None
+            result = _fit_panel(box, fx, fy, fw, fh, W, H)
+            log.info("facecam: face %s in %d/%d frames, overlay %s -> crop %s",
+                     (fx, fy, fw, fh), count, frames, box, result)
         else:
             log.info("facecam: no stable face (best cluster %d/%d frames)", count, frames)
+    shared = _stream_cache(cache_dir)
+    try:
+        by_stream = json.loads(shared.read_text()) if shared.exists() else {}
+    except (OSError, ValueError):
+        by_stream = {}
+    key = _stream_key(cache_dir)
+    if result:
+        by_stream[key] = result
+        shared.write_text(json.dumps(by_stream))
+    elif by_stream.get(key) and rects:
+        # Same stream, same overlay: reuse it if a face shows up inside it at least sometimes.
+        x, y, w, h = by_stream[key]
+        inside = sum(1 for (a, b, c, d) in rects
+                     if x <= a + c / 2 <= x + w and y <= b + d / 2 <= y + h)
+        if inside >= 2:
+            result = list(by_stream[key])
+            log.info("facecam: reusing stream layout %s (%d faces inside)", result, inside)
     cache.write_text(json.dumps(result or []))
     return result
 
 
-def _expand_face(fx: int, fy: int, fw: int, fh: int, W: int, H: int) -> list[int]:
-    """Grow the face box into a cam crop with the top panel's aspect ratio."""
+def _overlay_box(small: list, fx: int, fy: int, fw: int, fh: int, W: int, H: int):
+    """Find the webcam overlay around the face, or None. Returns (x0, y0, x1, y1).
+
+    The cam's room (walls, shelves, chair) barely changes between frames, while
+    the gameplay around it always does: the overlay is the static blob that
+    touches the face.
+    """
+    import cv2  # type: ignore[import-untyped]
+    import numpy as np
+
+    st = np.std(np.stack(small), axis=0)
+    h, w = st.shape
+    k = w / W
+    static = (st < 10).astype(np.uint8)
+    static = cv2.morphologyEx(static, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    static = cv2.morphologyEx(static, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+    n, _, stats, _ = cv2.connectedComponentsWithStats(static)
+    # face box grown 1.5x, in small coords
+    m = 0.75
+    a0, b0 = (fx - fw * m) * k, (fy - fh * m) * k
+    a1, b1 = (fx + fw * (1 + m)) * k, (fy + fh * (1 + m)) * k
+    best = None
+    for i in range(1, n):
+        x, y, cw, ch, area = (int(v) for v in stats[i])
+        if area < 0.01 * w * h:
+            continue
+        touches = x <= a1 and x + cw >= a0 and y <= b1 and y + ch >= b0
+        if touches and (best is None or area > best[4]):
+            best = (x, y, cw, ch, area)
+    if best is None:
+        return None
+    x, y, cw, ch, _ = best
+    x0 = int(min(x / k, fx - fw * 1.0))
+    y0 = int(min(y / k, fy - fh * 0.5))
+    x1 = int(max((x + cw) / k, fx + fw * 2.0))
+    y1 = int(max((y + ch) / k, fy + fh * 1.5))
+    x0, y0, x1, y1 = max(0, x0 + 4), max(0, y0 + 4), min(W, x1 - 4), min(H, y1 - 4)
+    bw, bh = x1 - x0, y1 - y0
+    if not (fw * 2.5 <= bw <= W * 0.6 and fh * 2.5 <= bh <= H * 0.8):
+        return None
+    return (x0, y0, x1, y1)
+
+
+def _fit_panel(box, fx: int, fy: int, fw: int, fh: int, W: int, H: int) -> list[int]:
+    """Largest crop with the top panel's aspect inside `box`, framed on the face."""
     aspect = OUT_W / CAM_PANEL_H
-    cw = min(W, int(fw * 3.6))
-    ch = int(cw / aspect)
-    if ch > H:
-        ch = H
-        cw = int(ch * aspect)
+    if box is None:  # no borders found: generous box around the face
+        cw = min(W, max(int(fw * 4.5), int(W * 0.22)))
+        ch = int(cw / aspect)
+        x0, y0 = 0, 0
+        x1, y1 = W, H
+    else:
+        x0, y0, x1, y1 = box
+        bw, bh = x1 - x0, y1 - y0
+        if bw / bh > aspect:
+            ch, cw = bh, int(bh * aspect)
+        else:
+            cw, ch = bw, int(bw / aspect)
     cx = fx + fw / 2
-    cy = fy + fh * 0.65  # keep some headroom; shoulders/desk below
-    x = int(min(max(0, cx - cw / 2), W - cw))
-    y = int(min(max(0, cy - ch / 2), H - ch))
-    return [x, y, cw & ~1, ch & ~1]
+    cy = fy + fh * 0.75  # face in the upper part, shoulders below
+    x = int(min(max(x0, cx - cw / 2), x1 - cw))
+    y = int(min(max(y0, cy - ch / 2), y1 - ch))
+    # never cut the head: top of the crop stays above the forehead
+    y = int(max(y0, min(y, fy - fh * 0.35)))
+    return [max(0, x), max(0, y), cw & ~1, ch & ~1]
 
 
 def smart_filter(
@@ -127,7 +218,8 @@ def smart_filter(
             gx = max(gx, x + w - gw // 6)
         gx = min(max(0, gx), W - gw)
         base = (
-            f"[0:v]crop={w}:{h}:{x}:{y},scale={OUT_W}:{CAM_PANEL_H}:flags=lanczos,setsar=1[top];"
+            f"[0:v]crop={w}:{h}:{x}:{y},scale={OUT_W}:{CAM_PANEL_H}:flags=lanczos,"
+            f"unsharp=5:5:0.6:5:5:0.0,setsar=1[top];"
             f"[0:v]crop={gw & ~1}:{H}:{gx}:0,scale={OUT_W}:{bot_h}:flags=lanczos,setsar=1[bot];"
             f"[top][bot]vstack[base]"
         )
