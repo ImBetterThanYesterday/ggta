@@ -71,7 +71,7 @@ server = [
     "psycopg2-binary>=2.9",
 ]
 vision = [
-    "opencv-python-headless>=4.9,<5",  # 5.x dropped CascadeClassifier
+    "opencv-python-headless>=4.9,<6",  # 5.x dropped CascadeClassifier
 ]
 ollama = [
     "ollama>=0.3",
