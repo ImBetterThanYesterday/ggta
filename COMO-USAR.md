@@ -113,6 +113,8 @@ Reglas del plan (se editan en `clipsmith/src/clipsmith/ledger/planner.py`):
 - **Cada audiencia tiene sus horas.** Los streamers de España rinden más de 9:00 a 14:00 (hora de Bogotá), los de EE. UU. de 17:00 a 22:00 y los de Latinoamérica durante el día.
 - **Los mejores clips salen primero** y la red que los recibe primero rota cada día.
 
+**Límite de YouTube:** un canal sin verificar solo puede subir unos 10 a 15 videos cada 24 horas; después aparece "Límite diario de subida alcanzado". Se quita verificando el canal con el teléfono en youtube.com/verify. Mientras tanto, reparte las subidas a YouTube en varios días.
+
 Si un clip no te convence (gancho vulgar, desnudos del juego, chismes de personas reales), márcalo con `--status skipped` en todas las redes y el plan lo ignora.
 
 ## Otros comandos
