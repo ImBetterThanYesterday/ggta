@@ -8,6 +8,7 @@ from .batch import batch_cmd
 from .clip import clip_cmd, reframe_cmd
 from .clip import publish_cmd as youtube_publish_cmd
 from .cloud import cloud_app
+from .ledger import ledger_app
 from .live import live_cmd, radar_cmd
 from .publish import publish_cmd, status_cmd
 from .rerender import rerender_cmd
@@ -19,6 +20,7 @@ from .vod import vod_cmd
 app = typer.Typer(add_completion=False, help="Twitch / Kick / YouTube -> AI clip pipeline")
 
 app.add_typer(cloud_app, name="cloud")
+app.add_typer(ledger_app, name="ledger")
 
 app.command()(process)
 app.command()(watch)

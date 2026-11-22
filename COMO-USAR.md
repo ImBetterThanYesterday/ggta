@@ -89,6 +89,32 @@ Una sola vez: pega tu API key en `clipsmith/.env`, en la línea `UPLOAD_POST_API
 - Al subir un clip, deja un `publicado.json` en su carpeta, así nunca sube el mismo dos veces.
 - **Plan gratis de Upload-Post:** 10 subidas al mes y sin TikTok. Para subir todos los días hace falta el plan Basic (24 USD al mes).
 
+## Control de videos: qué se subió, dónde y cuándo
+
+Una base de datos (Postgres en Docker) guarda cada clip y en qué redes está publicado o programado. Así nunca se sube el mismo clip dos veces y el plan reparte los clips en el tiempo.
+
+```bash
+docker compose up -d                                  # una vez: levanta Postgres (clave en clipsmith/.env)
+./clip ledger sync                                    # registra los clips nuevos de out/
+./clip ledger status                                  # clip × red (P=publicado, S=programado, p=planeado)
+./clip ledger plan --days 7 --from "2026-11-22 00:00" # arma el calendario de 7 días
+./clip ledger queue --hours 48                        # qué falta por subir en las próximas 48 h
+./clip ledger mark rivers instagram --at "2026-11-22 19:00"            # anota lo que programaste
+./clip ledger mark rivers tiktok --status published --at "2026-11-22 19:00"
+./clip ledger mark "/clip-feo" youtube --status skipped --notes "gancho vulgar"   # no subir en esa red
+./clip ledger boost "temazo" 10                       # sube la prioridad de un clip
+```
+
+Reglas del plan (se editan en `clipsmith/src/clipsmith/ledger/planner.py`):
+
+- **Horas por red**, hora de Bogotá. TikTok 11:00, 13:00, 17:30 y 21:00. YouTube 9:00, 11:00, 13:00, 17:30 y 21:00. Instagram y Facebook 9:00, 11:00, 13:00, 17:30 y 20:00.
+- **El mismo clip nunca sale en dos redes con menos de 30 horas de diferencia.** Cada red recibe clips distintos cada día, y el clip llega a las otras redes después.
+- **Un streamer no se repite** en la misma red en 8 horas, ni en cualquier red en 3 horas, y tiene como máximo 3 publicaciones al día.
+- **Cada audiencia tiene sus horas.** Los streamers de España rinden más de 9:00 a 14:00 (hora de Bogotá), los de EE. UU. de 17:00 a 22:00 y los de Latinoamérica durante el día.
+- **Los mejores clips salen primero** y la red que los recibe primero rota cada día.
+
+Si un clip no te convence (gancho vulgar, desnudos del juego, chismes de personas reales), márcalo con `--status skipped` en todas las redes y el plan lo ignora.
+
 ## Otros comandos
 
 ```bash

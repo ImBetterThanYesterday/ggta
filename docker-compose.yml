@@ -1,0 +1,18 @@
+# Local Postgres for the GGTA publishing ledger (`./clip ledger ...`).
+#   docker compose up -d
+# The password comes from POSTGRES_PASSWORD in clipsmith/.env (never committed).
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ggta-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ggta
+      POSTGRES_DB: ggta
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in clipsmith/.env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - ggta_pgdata:/var/lib/postgresql/data
+volumes:
+  ggta_pgdata:

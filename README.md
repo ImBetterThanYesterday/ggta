@@ -60,6 +60,7 @@ cd ..
 ./clip batch --only Spreen --only IShowSpeed                       # latest finished GTA stream of each
 ./clip radar                                                       # who's live playing GTA right now
 ./clip publish --dry-run --n 5                                     # preview what would be posted
+./clip ledger plan --days 7                                        # calendar of what goes where (needs docker compose up -d)
 ```
 
 The streamer roster lives in [`streamers.yaml`](streamers.yaml): about 40 English and
@@ -75,6 +76,8 @@ Spanish streamers with their verified YouTube, Twitch and Kick channels. Each on
 | `clipsmith/src/clipsmith/sources/` | Kick, YouTube and Twitch fetchers, chat, peaks, loudness, live status |
 | `clipsmith/src/clipsmith/rendering/` | Smart layout, captions, AI hooks + TTS |
 | `clipsmith/src/clipsmith/cli/` | `vod`, `batch`, `radar`, `live`, `publish` commands |
+| [`docker-compose.yml`](docker-compose.yml) | Local Postgres for the publishing ledger (`./clip ledger`) |
+| `clipsmith/src/clipsmith/ledger/` | Ledger: which clip is on which network, and the scheduling rules |
 | [`streamers.yaml`](streamers.yaml) | Streamer roster |
 | [`research/`](research/) | Background research on automated clip channels |
 | [`tools/chat_peaks.py`](tools/chat_peaks.py) | Original standalone chat-peak prototype |
