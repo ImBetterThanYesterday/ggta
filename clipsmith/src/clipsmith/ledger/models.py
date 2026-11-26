@@ -43,6 +43,8 @@ class Video(Base):
     duration_s: Mapped[float] = mapped_column(Float, default=0.0)
     priority: Mapped[float] = mapped_column(Float, default=50.0)  # higher = post sooner
     tags: Mapped[list] = mapped_column(JSON, default=list)
+    # when the source stream aired (UTC); fresher clips are planned first
+    stream_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     posts: Mapped[list[Post]] = relationship(back_populates="video", cascade="all, delete-orphan")

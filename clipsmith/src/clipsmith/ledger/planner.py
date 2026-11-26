@@ -7,6 +7,8 @@ Rules (all editable below):
   * a streamer doesn't repeat on the same network within STREAMER_GAP_HOURS, nor on any network
     within STREAMER_ANY_GAP_HOURS, and has at most STREAMER_DAILY_CAP posts a day;
   * audiences prefer different hours (Spain, LATAM, US) -> soft bonus/penalty;
+  * fresh clips first: a clip from a stream that aired in the last FRESH_HOURS gets up to
+    FRESH_BONUS extra points (fading to 0), and clips older than STALE_DAYS lose STALE_PENALTY;
   * the best clips go first, and the network that gets them first rotates every day.
 """
 
@@ -34,6 +36,11 @@ STREAMER_GAP_HOURS = 8.0  # same streamer, same network
 STREAMER_ANY_GAP_HOURS = 3.0   # same streamer on ANY network: keep them apart
 STREAMER_DAILY_CAP = 3         # max posts of one streamer per day, all networks together
 SLOT_CLEARANCE_MIN = 75   # don't plan within this many minutes of another post on the network
+
+FRESH_BONUS = 40.0        # GTA 6 clips are news: yesterday's stream beats last week's
+FRESH_HOURS = 72.0        # the bonus fades linearly to 0 over this many hours after the stream
+STALE_DAYS = 7.0          # clips older than this only fill gaps
+STALE_PENALTY = 15.0
 
 # Bogota hours when each audience is awake (Spain = Bogota + 6h, US east = Bogota + 1h)
 AUDIENCE_WINDOWS = {"spain": (9.0, 14.0), "latam": (11.0, 22.0), "us": (17.0, 22.0)}
@@ -65,6 +72,19 @@ def _fit(video: Video, slot: datetime) -> float:
     lo, hi = AUDIENCE_WINDOWS.get(video.audience, (9.0, 22.0))
     h = slot.hour + slot.minute / 60
     return 15.0 if lo <= h < hi else -10.0
+
+
+def _freshness(video: Video, slot: datetime) -> float:
+    """Bonus for clips of recent streams, judged at the moment the post would go out."""
+    aired = video.stream_at
+    if aired is None:
+        return 0.0
+    if aired.tzinfo is None:  # SQLite returns naive datetimes
+        aired = aired.replace(tzinfo=UTC)
+    age_h = max(0.0, (slot - aired).total_seconds() / 3600)
+    if age_h < FRESH_HOURS:
+        return FRESH_BONUS * (1 - age_h / FRESH_HOURS)
+    return -STALE_PENALTY if age_h > STALE_DAYS * 24 else 0.0
 
 
 @dataclass
@@ -135,7 +155,7 @@ def plan(db: Session, start: datetime, days: int, platforms: list[str] | None = 
             if sum(1 for q in mine if _when(q) and _when(q).astimezone(TZ).date() == t.date()) \
                     >= STREAMER_DAILY_CAP:
                 continue
-            score = v.priority + _fit(v, t)
+            score = v.priority + _fit(v, t) + _freshness(v, t)
             if best is None or score > best[0]:
                 best = (score, v)
         if best is None:

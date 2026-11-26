@@ -84,3 +84,26 @@ def test_published_time_beats_old_planned_time(db):
     rows = plan(db, START, 0)
     # published 2h before START on youtube -> other networks must wait the 30h gap
     assert not any(r.video.id == v.id and r.at - now < timedelta(hours=30) for r in rows)
+
+
+def test_fresh_stream_beats_old_backlog(db):
+    old = _video(db, 1, "OldGuy", prio=70)
+    old.stream_at = START - timedelta(days=10)
+    new = _video(db, 2, "NewGuy", prio=50)
+    new.stream_at = START - timedelta(hours=6)
+    db.flush()
+    rows = plan(db, START, 1, platforms=["youtube"])
+    assert rows[0].video.id == new.id
+
+
+def test_freshness_fades_and_unknown_dates_are_neutral():
+    from clipsmith.ledger.planner import FRESH_BONUS, _freshness
+
+    v = Video(folder="x/y", streamer="a", priority=50)
+    assert _freshness(v, START) == 0.0
+    v.stream_at = START
+    assert _freshness(v, START) == FRESH_BONUS
+    v.stream_at = START - timedelta(hours=36)
+    assert 0 < _freshness(v, START) < FRESH_BONUS
+    v.stream_at = START - timedelta(days=8)
+    assert _freshness(v, START) < 0

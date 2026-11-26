@@ -111,6 +111,7 @@ Reglas del plan (se editan en `clipsmith/src/clipsmith/ledger/planner.py`):
 - **El mismo clip nunca sale en dos redes con menos de 30 horas de diferencia.** Cada red recibe clips distintos cada día, y el clip llega a las otras redes después.
 - **Un streamer no se repite** en la misma red en 8 horas, ni en cualquier red en 3 horas, y tiene como máximo 3 publicaciones al día.
 - **Cada audiencia tiene sus horas.** Los streamers de España rinden más de 9:00 a 14:00 (hora de Bogotá), los de EE. UU. de 17:00 a 22:00 y los de Latinoamérica durante el día.
+- **Lo fresco primero.** Un clip de un stream de las últimas 72 horas gana hasta 40 puntos extra (menos cuanto más viejo), y uno de hace más de 7 días pierde 15: solo rellena huecos. La fecha del stream queda escrita en `publicar.txt` ("Fecha del directo"); los clips viejos sin esa línea usan la fecha en que se cortaron.
 - **Los mejores clips salen primero** y la red que los recibe primero rota cada día.
 
 **Límite de YouTube:** un canal sin verificar solo puede subir unos 10 a 15 videos cada 24 horas; después aparece "Límite diario de subida alcanzado". Se quita verificando el canal con el teléfono en youtube.com/verify. Mientras tanto, reparte las subidas a YouTube en varios días.

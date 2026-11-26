@@ -80,6 +80,7 @@ class VodChat:
     duration_s: float
     messages: list[ChatMessage]
     signal_clips: list[Clip]
+    started_at: datetime | None = None  # when the stream went live (UTC), if known
 
 
 # --------------------------------------------------------------------------- full chat
@@ -99,6 +100,17 @@ def _save_chat(path: Path, msgs: list[ChatMessage]) -> None:
     path.write_text(json.dumps([vars(m) for m in msgs], ensure_ascii=False), encoding="utf-8")
 
 
+def _info_started(info: dict) -> datetime | None:
+    """Stream start from yt-dlp metadata: exact timestamp if present, else the upload day."""
+    ts = info.get("release_timestamp") or info.get("timestamp")
+    if ts:
+        return datetime.fromtimestamp(float(ts), UTC)
+    day = info.get("release_date") or info.get("upload_date")
+    if day and len(str(day)) == 8:
+        return datetime.strptime(str(day), "%Y%m%d").replace(tzinfo=UTC)
+    return None
+
+
 def fetch_full_chat(url: str, work_dir: Path) -> VodChat:
     platform = detect_platform(url)
     if platform == "youtube":
@@ -115,7 +127,8 @@ def fetch_full_chat(url: str, work_dir: Path) -> VodChat:
             )
         msgs = _parse_youtube_live_chat(lc) if lc.exists() else []
         return VodChat("youtube", url, info.get("title", ""), info.get("channel", ""),
-                       float(info.get("duration") or 0), msgs, _heatmap_clips(info, 0, 0, top=15))
+                       float(info.get("duration") or 0), msgs, _heatmap_clips(info, 0, 0, top=15),
+                       _info_started(info))
 
     if platform == "kick":
         uuid = _KICK_UUID.search(url).group(0)  # type: ignore[union-attr]
@@ -130,7 +143,7 @@ def fetch_full_chat(url: str, work_dir: Path) -> VodChat:
             msgs = _kick_chat(ls["channel_id"], start, 0, dur)
             _save_chat(cache, msgs)
         return VodChat("kick", url, ls.get("session_title", ""),
-                       (ls.get("channel") or {}).get("slug", ""), dur, msgs, [])
+                       (ls.get("channel") or {}).get("slug", ""), dur, msgs, [], start)
 
     vod = re.search(r"(\d{6,})", url).group(1)  # type: ignore[union-attr]
     info = _ytdlp_info(f"https://www.twitch.tv/videos/{vod}")
@@ -140,7 +153,8 @@ def fetch_full_chat(url: str, work_dir: Path) -> VodChat:
         msgs = _twitch_chat_range(vod, 0, 0)
         _save_chat(cache, msgs)
     return VodChat("twitch", f"https://www.twitch.tv/videos/{vod}", info.get("title", ""),
-                   info.get("uploader", ""), float(info.get("duration") or 0), msgs, [])
+                   info.get("uploader", ""), float(info.get("duration") or 0), msgs, [],
+                   _info_started(info))
 
 
 # --------------------------------------------------------------------------- peaks

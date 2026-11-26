@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 import typer
@@ -152,7 +153,7 @@ def run_vod(
                         skip_transcribe=True, extra_clips=[hint, *res.signal_clips],
                         max_candidates=1)
             made += _package(cfg.out_dir.expanduser() / res.video.id, wdir, final_dir, p,
-                             start, name, vc.platform, url, vc.title)
+                             start, name, vc.platform, url, vc.title, vc.started_at)
         except Exception as exc:
             console.print(f"[red]momento {i} falló: {exc}[/red]")
 
@@ -172,7 +173,8 @@ def _source_link(platform: str, url: str, t: float) -> str:
 
 
 def _package(out_dir: Path, wdir: Path, final_dir: Path, p: Peak, window_start: float,
-             streamer: str, platform: str, url: str, stream_title: str) -> list[Path]:
+             streamer: str, platform: str, url: str, stream_title: str,
+             started_at: datetime | None = None) -> list[Path]:
     """One folder per clip: video.mp4 + publicar.txt with everything needed to post."""
     made = []
     picks = json.loads((wdir / "picks.json").read_text()) if (wdir / "picks.json").exists() else []
@@ -221,6 +223,7 @@ Voz en off: {hook.get('voiceover', '-') if hook.get('hook_style') != 'text_only'
 Streamer: {streamer}
 Plataforma: {platform}
 Directo: {stream_title}
+Fecha del directo: {started_at.strftime('%Y-%m-%d %H:%M UTC') if started_at else '-'}
 Minuto en el directo: {_hms(abs_t)}  (duración del clip: {dur:.0f} s)
 Link al momento exacto: {_source_link(platform, url, abs_t)}
 Por qué se eligió: {pick.get('reason', '')}

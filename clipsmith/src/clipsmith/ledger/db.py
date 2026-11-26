@@ -6,7 +6,7 @@ import os
 from contextlib import contextmanager
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -31,7 +31,17 @@ def make_engine() -> Engine:
     url = database_url()
     engine = create_engine(url, pool_pre_ping=True)
     Base.metadata.create_all(engine)
+    _add_missing_columns(engine)
     return engine
+
+
+def _add_missing_columns(engine: Engine) -> None:
+    """Tiny forward-only migration: add columns introduced after the table was created."""
+    have = {c["name"] for c in inspect(engine).get_columns("video")}
+    ts = "TIMESTAMP WITH TIME ZONE" if engine.dialect.name == "postgresql" else "DATETIME"
+    with engine.begin() as conn:
+        if "stream_at" not in have:
+            conn.execute(text(f"ALTER TABLE video ADD COLUMN stream_at {ts}"))
 
 
 @contextmanager

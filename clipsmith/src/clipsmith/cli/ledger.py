@@ -68,6 +68,17 @@ def _sync_publicado(out: Path, video: Video) -> None:
     f.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+_STREAM_DATE = re.compile(r"^Fecha del directo: (\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC", re.MULTILINE)
+
+
+def _stream_at(body: str, txt: Path) -> datetime:
+    """When the stream aired: the date written in publicar.txt, else when the clip was made
+    (clips are cut right after the stream ends; publicar.txt isn't touched by rerender)."""
+    if m := _STREAM_DATE.search(body):
+        return datetime.strptime(m.group(1), "%Y-%m-%d %H:%M").replace(tzinfo=UTC)
+    return datetime.fromtimestamp(txt.stat().st_mtime, UTC)
+
+
 @ledger_app.command("sync")
 def sync_cmd(
     out: Path = typer.Option(Path("out"), "--out"),
@@ -99,6 +110,8 @@ def sync_cmd(
                 db.add(v)
                 db.flush()
                 new += 1
+            if v.stream_at is None:
+                v.stream_at = _stream_at(body, txt)
             done = set()
             pj = folder / "publicado.json"
             if pj.exists():
