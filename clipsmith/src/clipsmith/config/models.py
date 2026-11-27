@@ -135,6 +135,16 @@ class HookConfig(BaseModel):
     voices: dict[str, str] = {"es": "es-MX-JorgeNeural", "en": "en-US-AndrewNeural"}
 
 
+class EditConfig(BaseModel):
+    """Per-clip edit plan (layouts, punch-ins, cold open, caption preset...). See rendering/editplan.py."""
+
+    enabled: bool = True
+    llm: bool = True          # Claude/Codex writes the plan; False = heuristic plan
+    provider: str = ""        # codex_cli | claude_cli ("" = same as hook.provider)
+    cold_open: bool = True    # allow payoff-first openings
+    history: int = 8          # recent clips the planner avoids repeating
+
+
 class AppConfig(BaseModel):
     channels: list[str] = Field(default_factory=list)
     poll_interval_s: int = 120
@@ -146,6 +156,7 @@ class AppConfig(BaseModel):
     llm: LLMConfig = LLMConfig()
     caption: CaptionConfig = CaptionConfig()
     hook: HookConfig = HookConfig()
+    edit: EditConfig = EditConfig()
     reframe: ReframeConfig = ReframeConfig()
     cloud: CloudConfig = CloudConfig()
     checkpoint: CheckpointConfig = CheckpointConfig()

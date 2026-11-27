@@ -63,6 +63,18 @@ Junto a cada video queda un `.txt` con título, descripción y hashtags listos p
 
 **Cámara del streamer:** la máquina detecta el recuadro completo de la webcam (la parte de la imagen que casi no cambia alrededor de la cara), así que nunca corta la cara a la mitad. Si en un momento no encuentra la cara, usa la posición de la cámara que encontró en otro momento del mismo stream.
 
+**Edición distinta en cada clip (plan de edición):** antes de renderizar, la IA escribe un plan para ese clip (queda en `edit.json` junto al video y en el ledger):
+
+- **Cold open:** si el mejor momento llega después de ~6 s, el clip abre con 1–2,5 s del desenlace (con el gancho encima), un flash y un whoosh, y luego vuelve al inicio.
+- **Layouts que cambian con lo que pasa:** `stack` (cámara arriba), `stack_50` (mitad y mitad), `cam_big` (cara grande para reacciones), `game_top` (juego arriba), `square_game` (juego cuadrado nítido), `game_pip` (juego completo con la cámara flotando), `game_full` y `fit_blur`. Máximo 3 cambios cada 30 s.
+- **Zoom (punch-in) de 15–25 %** justo en el pico de la reacción, máximo 4 cada 40 s.
+- **Gancho:** 6 tipos (titular, lo que está en juego, curiosidad, pregunta, "mira su cara", POV) y 5 estilos (caja blanca, negra, amarilla, solo letras, barra fija arriba).
+- **Subtítulos:** 6 estilos (`yellow_pop`, `green_pop`, `boxed`, `single_word`, `clean`, `din_caps`) y 1–3 palabras clave en color.
+- **Sonido:** whoosh, boom, riser y pop generados por la máquina (sin copyright); audio final a −14 LUFS para las 4 redes. Si tienes efectos con licencia, ponlos en `clipsmith/assets/sfx/<nombre>.wav`.
+- **Variedad:** el plan mira los últimos 8 clips y no repite el mismo gancho, estilo de gancho ni estilo de subtítulos.
+
+Se configura en `clipsmith/config.yaml` → `edit:` (`llm: false` usa un plan automático sin IA). Para rehacer el plan de clips viejos: `./clip rerender <palabras> --replan`.
+
 **Volver a renderizar** (después de una mejora, sin bajar nada ni gastar IA):
 
 ```bash

@@ -42,6 +42,9 @@ def _add_missing_columns(engine: Engine) -> None:
     with engine.begin() as conn:
         if "stream_at" not in have:
             conn.execute(text(f"ALTER TABLE video ADD COLUMN stream_at {ts}"))
+        if "edit" not in have:
+            kind = "JSONB" if engine.dialect.name == "postgresql" else "JSON"
+            conn.execute(text(f"ALTER TABLE video ADD COLUMN edit {kind}"))
 
 
 @contextmanager

@@ -45,6 +45,8 @@ class Video(Base):
     tags: Mapped[list] = mapped_column(JSON, default=list)
     # when the source stream aired (UTC); fresher clips are planned first
     stream_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # how the clip was edited (edit.json summary: layouts, hook type, caption preset...)
+    edit: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     posts: Mapped[list[Post]] = relationship(back_populates="video", cascade="all, delete-orphan")

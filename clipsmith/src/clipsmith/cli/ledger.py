@@ -112,6 +112,12 @@ def sync_cmd(
                 new += 1
             if v.stream_at is None:
                 v.stream_at = _stream_at(body, txt)
+            ej = folder / "edit.json"
+            if ej.exists() and not v.edit:
+                try:
+                    v.edit = json.loads(ej.read_text(encoding="utf-8")).get("summary")
+                except ValueError:
+                    pass
             done = set()
             pj = folder / "publicado.json"
             if pj.exists():

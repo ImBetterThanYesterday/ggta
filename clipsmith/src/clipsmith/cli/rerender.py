@@ -73,6 +73,7 @@ def rerender_cmd(
     config_path: Path = typer.Option(Path("config.yaml"), "--config", "-c"),
     out: Path = typer.Option(None, "--out", help="Folder with the clip folders (default: out/)"),
     redetect: bool = typer.Option(True, "--redetect/--keep-cam", help="Detect the facecam again"),
+    replan: bool = typer.Option(False, "--replan", help="Ask for a new edit plan (layouts, hook...)"),
     web: bool = typer.Option(True, "--web/--no-web",
                              help="Also write video_web.mp4 (<10 MB, for browser uploads)"),
 ) -> None:
@@ -101,6 +102,8 @@ def rerender_cmd(
         transcript = Transcript.from_json((wdir / "transcript.json").read_text(encoding="utf-8"))
         if redetect:
             (wdir / "facecam.json").unlink(missing_ok=True)
+        if replan:
+            (wdir / "edit_01.json").unlink(missing_ok=True)
         tmp = folder / "video.new.mp4"
         pr = picks[0]
         try:
@@ -110,6 +113,10 @@ def rerender_cmd(
             tmp.unlink(missing_ok=True)
             continue
         shutil.move(str(tmp), folder / "video.mp4")
+        plan = tmp.with_suffix(".edit.json")
+        if plan.exists():
+            shutil.move(str(plan), folder / "edit.json")
+        tmp.with_suffix(".txt").unlink(missing_ok=True)
         if web:
             make_web_copy(folder / "video.mp4", folder / "video_web.mp4")
         else:

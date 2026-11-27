@@ -131,6 +131,10 @@ def _cut_smart(
     pr: PickResult | None = None,
 ) -> Path:
     """Facecam-aware vertical layout + AI hook (text + voice) + PNG captions."""
+    if getattr(config, "edit", None) is not None and config.edit.enabled:
+        from .director import render_directed
+
+        return render_directed(mp4_path, transcript, start, end, index, out_path, config, pr)
     import json
     import re
 

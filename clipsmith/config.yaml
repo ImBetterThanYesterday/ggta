@@ -121,6 +121,15 @@ reframe:
   # e.g. 0.4 → 768px webcam on top, 1152px gameplay on bottom
   split_ratio: 0.4
 
+edit:
+  # Plan de edición por clip: layouts que cambian con lo que pasa, zoom en la reacción,
+  # el desenlace primero (cold open), estilos de subtítulos y gancho que rotan.
+  enabled: true
+  llm: true            # false = plan heurístico (sin IA)
+  provider: ""         # "" = el mismo de hook.provider
+  cold_open: true
+  history: 8           # cuántos clips recientes mira para no repetir estilos
+
 hook:
   # Gancho: texto en pantalla + voz IA en los primeros segundos (open loop)
   enabled: true

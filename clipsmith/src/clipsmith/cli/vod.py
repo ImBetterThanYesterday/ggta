@@ -190,6 +190,9 @@ def _package(out_dir: Path, wdir: Path, final_dir: Path, p: Peak, window_start: 
         folder = final_dir / f"{_hms(p.t).replace(':', '-')}_{mp4.stem.replace('clip_01_', '')}"
         folder.mkdir(parents=True, exist_ok=True)
         shutil.move(str(mp4), folder / "video.mp4")
+        edit = out_dir / f"{mp4.stem}.edit.json"
+        if edit.exists():  # the edit plan used, logged in the ledger
+            shutil.move(str(edit), folder / "edit.json")
         for extra in out_dir.glob(f"{mp4.stem}.*"):
             extra.unlink(missing_ok=True)
         tags = " ".join(hook.get("hashtags", []))

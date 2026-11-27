@@ -106,14 +106,22 @@ def synth_voice(text: str, out_mp3: Path, voice: str = "es-MX-JorgeNeural",
     return float(dur)
 
 
-def render_hook_png(text: str, out_png: Path) -> tuple[int, int]:
-    """White rounded box, heavy black text (classic TikTok text style)."""
-    from PIL import Image, ImageDraw
+def render_hook_png(text: str, out_png: Path, look: str = "white_box") -> tuple[int, int]:
+    """Hook text as a PNG. Looks: white_box (classic TikTok), black_box, yellow_box,
+    outline (no box, heavy stroke) and top_bar (full-width header kept the whole clip)."""
+    from PIL import Image, ImageDraw, ImageFont
 
     from .captions_png import _font
 
-    font = _font()
-    max_w = 940
+    if look == "outline":
+        font = ImageFont.truetype("/System/Library/Fonts/Supplemental/Impact.ttf", 112) \
+            if Path("/System/Library/Fonts/Supplemental/Impact.ttf").exists() else _font()
+    elif look == "top_bar":
+        font = ImageFont.truetype("/System/Library/Fonts/Avenir Next.ttc", 66, index=8) \
+            if Path("/System/Library/Fonts/Avenir Next.ttc").exists() else _font()
+    else:
+        font = _font()
+    max_w = 1000 if look == "top_bar" else 940
     probe = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
     words, lines, cur = text.split(), [], ""
     for w in words:
@@ -124,18 +132,32 @@ def render_hook_png(text: str, out_png: Path) -> tuple[int, int]:
         else:
             cur = t
     lines.append(cur)
-    line_h = 100
-    pad = 34
-    box_w = int(max(probe.textlength(line, font=font) for line in lines)) + pad * 2
+    asc, desc = font.getmetrics()
+    line_h = asc + desc + (2 if look == "top_bar" else 10)
+    pad = 26 if look == "top_bar" else 34
+    text_w = int(max(probe.textlength(line, font=font) for line in lines))
+    box_w = 1060 if look == "top_bar" else text_w + pad * 2
     box_h = line_h * len(lines) + pad * 2 - 10
     img = Image.new("RGBA", (box_w + 20, box_h + 20), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle((10, 14, box_w + 10, box_h + 14), radius=28, fill=(0, 0, 0, 90))  # shadow
-    d.rounded_rectangle((6, 6, box_w + 6, box_h + 6), radius=28, fill=(255, 255, 255, 255))
+    fill, ink, stroke = (255, 255, 255, 255), (0, 0, 0, 255), 0
+    if look == "black_box":
+        fill, ink = (12, 12, 12, 235), (255, 255, 255, 255)
+    elif look == "yellow_box":
+        fill, ink = (255, 221, 0, 255), (0, 0, 0, 255)
+    elif look == "top_bar":
+        fill, ink = (0, 0, 0, 215), (255, 255, 255, 255)
+    elif look == "outline":
+        fill, ink, stroke = None, (255, 255, 255, 255), 10
+    if fill is not None:
+        radius = 18 if look == "top_bar" else 28
+        d.rounded_rectangle((10, 14, box_w + 10, box_h + 14), radius=radius, fill=(0, 0, 0, 90))  # shadow
+        d.rounded_rectangle((6, 6, box_w + 6, box_h + 6), radius=radius, fill=fill)
     y = pad + 6
     for line in lines:
         lw = probe.textlength(line, font=font)
-        d.text((6 + (box_w - lw) / 2, y), line, font=font, fill=(0, 0, 0, 255))
+        d.text((6 + (box_w - lw) / 2, y), line, font=font, fill=ink,
+               stroke_width=stroke, stroke_fill=(0, 0, 0, 255))
         y += line_h
     img.save(out_png)
     return img.size
