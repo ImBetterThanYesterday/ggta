@@ -108,7 +108,9 @@ def recent_finished(entry: dict, game: str = "gta", days: float = 7,
             continue
         try:
             cands += fns[platform](entry["name"], handle)
-        except Exception:
+        except Exception as e:  # a network drop must not look like "no stream"
+            print(f"  ! {entry['name']} {platform}: no se pudo listar ({type(e).__name__}: {e})",
+                  file=sys.stderr)
             continue
     cands = [c for c in cands if _matches(game, c.title, c.game) and c.duration_s >= min_hours * 3600]
     # YouTube flat listings often lack exact dates: prefer longer, then newer
