@@ -21,6 +21,7 @@ site/
 
 # Pipeline artifacts
 out/
+out_otros/
 work/
 state.json
 *.mp4
