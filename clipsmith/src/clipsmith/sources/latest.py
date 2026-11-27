@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess  # nosec B404
 import sys
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
@@ -99,19 +100,22 @@ def latest_finished(entry: dict, game: str = "gta", min_hours: float = 0.5) -> P
 
 
 def recent_finished(entry: dict, game: str = "gta", days: float = 7,
-                    min_hours: float = 0.5) -> list[PastStream]:
+                    min_hours: float = 0.5, retries: int = 10) -> list[PastStream]:
     """Finished streams of the last `days` days, newest first (days=0: only the latest)."""
     cands: list[PastStream] = []
     fns = {"twitch": twitch_past, "kick": kick_past, "youtube": youtube_past}
     for platform, handle in (entry.get("channels") or {}).items():
         if not handle or platform not in fns:
             continue
-        try:
-            cands += fns[platform](entry["name"], handle)
-        except Exception as e:  # a network drop must not look like "no stream"
-            print(f"  ! {entry['name']} {platform}: no se pudo listar ({type(e).__name__}: {e})",
-                  file=sys.stderr)
-            continue
+        for attempt in range(retries + 1):
+            try:
+                cands += fns[platform](entry["name"], handle)
+                break
+            except Exception as e:  # a network drop must not look like "no stream"
+                print(f"  ! {entry['name']} {platform}: no se pudo listar ({type(e).__name__}: {e})"
+                      + (" — reintento en 60 s" if attempt < retries else ""), file=sys.stderr)
+                if attempt < retries:
+                    time.sleep(60)
     cands = [c for c in cands if _matches(game, c.title, c.game) and c.duration_s >= min_hours * 3600]
     # YouTube flat listings often lack exact dates: prefer longer, then newer
     cands.sort(key=lambda c: (c.started_at.date(), c.duration_s), reverse=True)
