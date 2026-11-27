@@ -113,9 +113,11 @@ def recent_finished(entry: dict, game: str = "gta", days: float = 7,
                 break
             except Exception as e:  # a network drop must not look like "no stream"
                 print(f"  ! {entry['name']} {platform}: no se pudo listar ({type(e).__name__}: {e})"
-                      + (" — reintento en 60 s" if attempt < retries else ""), file=sys.stderr)
-                if attempt < retries:
-                    time.sleep(60)
+                      + (" — reintento en 60 s" if attempt < retries
+                         and isinstance(e, httpx.TransportError) else ""), file=sys.stderr)
+                if attempt >= retries or not isinstance(e, httpx.TransportError):
+                    break  # only connection drops are worth waiting for
+                time.sleep(60)
     cands = [c for c in cands if _matches(game, c.title, c.game) and c.duration_s >= min_hours * 3600]
     # YouTube flat listings often lack exact dates: prefer longer, then newer
     cands.sort(key=lambda c: (c.started_at.date(), c.duration_s), reverse=True)
