@@ -143,6 +143,7 @@ class EditConfig(BaseModel):
     provider: str = ""        # codex_cli | claude_cli ("" = same as hook.provider)
     cold_open: bool = True    # allow payoff-first openings
     history: int = 8          # recent clips the planner avoids repeating
+    classic_share: float = Field(default=0.3, ge=0.0, le=1.0)  # share of clips in the classic format
 
 
 class AppConfig(BaseModel):

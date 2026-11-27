@@ -35,6 +35,7 @@ class Piece:
     layout: str
     zoom: float = 1.0
     target: str = "face"
+    face: tuple[float, float, float] | None = None
 
 
 # --------------------------------------------------------------------------- geometry
@@ -49,12 +50,22 @@ def _fit(box_w: float, box_h: float, aspect: float) -> tuple[float, float]:
     return (box_h * aspect, box_h) if box_w / box_h > aspect else (box_w, box_w / aspect)
 
 
-def cam_crop(cam: list[int], aspect: float, zoom: float = 1.0) -> tuple[int, int, int, int]:
-    """Crop of `aspect` inside the facecam overlay, framed on the face, optionally zoomed."""
+def cam_crop(cam: list[int], aspect: float, zoom: float = 1.0,
+             face: tuple[float, float, float] | None = None) -> tuple[int, int, int, int]:
+    """Crop of `aspect` inside the facecam overlay, framed on the face, optionally zoomed.
+
+    face: (centre x, centre y, height) of the streamer's face in this piece, if found.
+    Zoom never crops tighter than ~2.6 face heights, so the head always fits.
+    """
     x, y, w, h = cam
     cw, ch = _fit(w, h, aspect)
+    if face:
+        zoom = min(zoom, max(1.0, ch / (face[2] * 2.6)))
     cw, ch = cw / zoom, ch / zoom
-    fx, fy = x + w / 2, y + h * 0.45  # face sits in the upper half of the cam crop
+    if face:
+        fx, fy = face[0], face[1] + ch * 0.08  # face a bit above the middle
+    else:
+        fx, fy = x + w / 2, y + h * 0.45  # face sits in the upper half of the cam crop
     cx = min(max(fx - cw / 2, x), x + w - cw)
     cy = min(max(fy - ch / 2, y), y + h - ch)
     return _even(cw), _even(ch), int(cx), int(cy)
@@ -95,12 +106,13 @@ def game_crop(W: int, H: int, cam: list[int] | None, aspect: float,
 
 
 # (cam panel height, game first?) for the stacked layouts
-_STACKS = {"stack": (700, False), "stack_50": (960, False), "cam_big": (1150, False),
+_STACKS = {"stack": (700, False), "stack_50": (960, False), "cam_big": (900, False),
            "square_game": (840, False), "game_top": (700, True)}
 
 
 def layout_filter(src: str, out: str, layout: str, W: int, H: int, cam: list[int] | None,
-                  zoom: float = 1.0, target: str = "face", tag: str = "") -> str:
+                  zoom: float = 1.0, target: str = "face", tag: str = "",
+                  face: tuple[float, float, float] | None = None) -> str:
     """Filter chain taking [src] (already trimmed) and producing [out] at 1080x1920."""
     zc = zoom if target in ("face", "frame") else 1.0
     zg = zoom if target in ("game", "frame") else 1.0
@@ -108,7 +120,7 @@ def layout_filter(src: str, out: str, layout: str, W: int, H: int, cam: list[int
     if layout in _STACKS and cam:
         cam_h, game_first = _STACKS[layout]
         game_h = OUT_H - cam_h
-        cw, ch, cx, cy = cam_crop(cam, OUT_W / cam_h, zc)
+        cw, ch, cx, cy = cam_crop(cam, OUT_W / cam_h, zc, face)
         gw, gh, gx, gy = game_crop(W, H, cam, OUT_W / game_h, zg)
         a, b = (f"g{tag}", f"c{tag}") if game_first else (f"c{tag}", f"g{tag}")
         return (f"[{src}]split[c{tag}i][g{tag}i];"
@@ -119,7 +131,7 @@ def layout_filter(src: str, out: str, layout: str, W: int, H: int, cam: list[int
     if layout == "game_pip" and cam:
         gw, gh, gx, gy = game_crop(W, H, cam, OUT_W / OUT_H, zg)
         pw = 470
-        cw, ch, cx, cy = cam_crop(cam, 1.35, zc)
+        cw, ch, cx, cy = cam_crop(cam, 1.35, zc, face)
         ph = _even(pw / 1.35)
         return (f"[{src}]split[g{tag}i][c{tag}i];"
                 f"[g{tag}i]crop={gw}:{gh}:{gx}:{gy},scale={OUT_W}:{OUT_H}:flags=lanczos,setsar=1[g{tag}];"
@@ -194,6 +206,38 @@ def _piecewise(points: list[tuple[float, int]]) -> str:
 
 
 # --------------------------------------------------------------------------- signals
+
+
+def find_face(mp4: Path, times: list[float], cam: list[int]) -> tuple[float, float, float] | None:
+    """Where the streamer's face is inside the facecam at these times (median), or None
+    when they leaned out / left the chair (then we don't zoom on the cam)."""
+    try:
+        import cv2  # type: ignore[import-untyped]
+        import numpy as np
+    except ImportError:
+        return None
+    x, y, w, h = cam
+    cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+    found = []
+    for t in times:
+        raw = subprocess.run(  # nosec B603
+            ["ffmpeg", "-v", "error", "-ss", f"{t:.3f}", "-i", str(mp4), "-frames:v", "1",
+             "-vf", f"crop={w}:{h}:{x}:{y}", "-f", "rawvideo", "-pix_fmt", "gray", "-"],
+            capture_output=True, check=False,
+        ).stdout
+        if len(raw) != w * h:
+            continue
+        img = np.frombuffer(raw, dtype=np.uint8).reshape(h, w)
+        faces = cascade.detectMultiScale(img, scaleFactor=1.08, minNeighbors=5,
+                                         minSize=(int(h * 0.12), int(h * 0.12)))
+        if len(faces):
+            fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+            found.append((x + fx + fw / 2, y + fy + fh / 2, float(fh)))
+    if not found or len(found) < max(1, len(times) // 2):
+        return None
+    xs, ys, hs = zip(*found, strict=True)
+    return float(np.median(xs)), float(np.median(ys)), float(np.median(hs))
+
 
 
 def audio_peaks(mp4: Path, start: float, dur: float, top: int = 10) -> list[tuple[float, float]]:
@@ -403,6 +447,17 @@ def render_directed(mp4_path: Path, transcript: Transcript, start: float, end: f
     pieces = main_pieces(plan, dur)
     if cold:
         pieces = [Piece(teaser_i, 0.0, tl, teaser_layout(plan, has_cam))] + pieces
+    if cam:  # frame each piece on where the face really is (they lean, stand up, leave)
+        for p in pieces:
+            if p.layout in _STACKS or p.layout == "game_pip":
+                base = start + (tz["from"] if p.src == teaser_i and cold else 0.0)
+                n = 3 if p.b - p.a > 1.5 else 2
+                ts = [base + p.a + (p.b - p.a) * (i + 0.5) / n for i in range(n)]
+                p.face = find_face(mp4_path, ts, cam)
+                if p.face is None and p.target == "face":
+                    p.zoom = 1.0  # no face to punch in on
+                if p.face is None and p.layout == "cam_big":
+                    p.layout = "stack"  # don't blow up an empty chair / a t-shirt
     chains: list[str] = []
     main_n = sum(1 for p in pieces if p.src == 0)
     chains.append(f"[0:v]fps={FPS},split={main_n}" + "".join(f"[m{i}]" for i in range(main_n)))
@@ -415,7 +470,8 @@ def render_directed(mp4_path: Path, transcript: Transcript, start: float, end: f
         else:
             src = f"t{k}"
             chains.append(f"[{p.src}:v]fps={FPS},setpts=PTS-STARTPTS[{src}]")
-        chains.append(layout_filter(src, f"p{k}", p.layout, W, H, cam, p.zoom, p.target, tag=str(k)))
+        chains.append(layout_filter(src, f"p{k}", p.layout, W, H, cam, p.zoom, p.target, tag=str(k),
+                                    face=p.face))
         labels.append(f"[p{k}]")
         offs.append((t_out, p.layout))
         t_out += p.b - p.a

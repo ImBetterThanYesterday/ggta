@@ -129,6 +129,7 @@ edit:
   provider: ""         # "" = el mismo de hook.provider
   cold_open: true
   history: 8           # cuántos clips recientes mira para no repetir estilos
+  classic_share: 0.3   # parte de los clips con el formato clásico (cámara arriba, juego abajo)
 
 hook:
   # Gancho: texto en pantalla + voz IA en los primeros segundos (open loop)

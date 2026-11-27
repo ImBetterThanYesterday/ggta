@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 LAYOUTS: dict[str, dict] = {
     "stack": {"cam": True, "desc": "facecam top (700px), gameplay bottom. Neutral default."},
     "stack_50": {"cam": True, "desc": "facecam and gameplay half and half. Talky moments."},
-    "cam_big": {"cam": True, "desc": "big facecam (60%), small gameplay. Reactions, screaming, laughing."},
+    "cam_big": {"cam": True, "desc": "big facecam (47%), gameplay below. Reactions, screaming, laughing."},
     "game_top": {"cam": True, "desc": "gameplay top, facecam bottom. When the game action leads."},
     "square_game": {"cam": True, "desc": "facecam top, sharp square gameplay. Driving, chases, aiming."},
     "game_pip": {"cam": True, "desc": "full-screen gameplay with a small floating facecam. Big game action."},
@@ -58,8 +58,8 @@ MIN_SEGMENT_S = 1.5
 SWITCHES_PER_30S = 3
 PUNCHES_PER_40S = 4
 MAX_SFX = 3
-TEASER_MIN, TEASER_MAX = 1.2, 2.6
-COLD_OPEN_MIN_PAYOFF = 6.0  # a payoff in the first seconds needs no rewind
+TEASER_MIN, TEASER_MAX = 2.5, 5.0
+COLD_OPEN_MIN_PAYOFF = 8.0  # a payoff in the first seconds needs no rewind
 
 PLAN_SCHEMA = {
     "type": "object",
@@ -149,7 +149,7 @@ def validate(plan: dict, dur: float, has_cam: bool, history: list[dict] | None =
             errors.append(f"teaser lasts {b - a:.1f}s; must be {TEASER_MIN}–{TEASER_MAX}s")
         mid = min(max(payoff, (a + b) / 2), dur)
         ln = min(max(b - a, TEASER_MIN), TEASER_MAX)
-        a = max(0.0, min(mid - ln * 0.65, dur - ln))
+        a = max(0.0, min(mid - ln * 0.6, dur - ln))
         b = min(dur, a + ln)
     p["teaser"] = {"from": round(a, 2), "to": round(b, 2)}
 
@@ -262,7 +262,7 @@ def fallback_plan(dur: float, has_cam: bool, peaks: list[tuple[float, float]],
     return {
         "payoff_t": payoff,
         "cold_open": bool(payoff >= 10),
-        "teaser": {"from": payoff - 1.3, "to": payoff + 0.7},
+        "teaser": {"from": payoff - 2.4, "to": payoff + 1.6},
         "segments": segs,
         "punch_ins": [{"t": payoff, "dur": 1.2, "target": "face" if has_cam else "frame", "zoom": 1.2}],
         "sfx": [{"t": payoff, "name": "boom"}],
@@ -282,9 +282,10 @@ You are the editor of a viral gaming-clips page (GTA 6 streamer clips for TikTok
 Decide how THIS clip is edited, so it doesn't look like every other clip page, and write its hook.
 
 What retains viewers (use it):
-- Payoff first: if the best moment is later than ~6 s, set cold_open=true and pick a 1.2–2.6 s
-  `teaser` around the payoff (start ~1 s before the peak). It plays first, then the clip rewinds
-  to the start. With cold_open the hook text sits over the teaser (no voice-over).
+- Payoff first: if the best moment is later than ~8 s, set cold_open=true and pick a 2.5–5 s
+  `teaser` around the payoff: start ~2 s BEFORE the peak so the viewer understands what happens,
+  end ~1.5 s after the reaction. It plays first, then the clip rewinds to the start. With
+  cold_open the hook text sits over the teaser (no voice-over).
 - Change the composition WITH the events, not on a timer: context layout first, the action
   layout while things happen, a reaction layout (cam_big) for screaming/laughing. 0–3 switches
   per 30 s, never shorter than 1.5 s.

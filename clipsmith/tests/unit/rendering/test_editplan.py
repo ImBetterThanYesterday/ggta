@@ -14,7 +14,7 @@ pytestmark = pytest.mark.unit
 
 def _plan(**kw):
     base = {
-        "payoff_t": 20.0, "cold_open": True, "teaser": {"from": 19.0, "to": 21.0},
+        "payoff_t": 20.0, "cold_open": True, "teaser": {"from": 18.0, "to": 21.5},
         "segments": [{"from": 0, "layout": "stack"}, {"from": 18.5, "layout": "cam_big"}],
         "punch_ins": [{"t": 20.0, "dur": 1.2, "target": "face", "zoom": 1.2}],
         "sfx": [{"t": 20.0, "name": "boom"}],

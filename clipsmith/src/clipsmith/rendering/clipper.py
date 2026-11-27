@@ -120,6 +120,15 @@ def _load_or_make_hook(mp4_path: Path, transcript: Transcript, start: float, end
     return hook
 
 
+def _classic_turn(mp4_path: Path, index: int, share: float) -> bool:
+    """Whether this clip keeps the classic format (cam top, game bottom, hook box).
+    Stable per clip, so re-renders keep the same choice."""
+    import hashlib
+
+    h = int(hashlib.sha1(f"{mp4_path.parent.name}:{index}".encode()).hexdigest()[:8], 16)
+    return (h % 1000) / 1000 < share
+
+
 def _cut_smart(
     mp4_path: Path,
     transcript: Transcript,
@@ -131,11 +140,16 @@ def _cut_smart(
     pr: PickResult | None = None,
 ) -> Path:
     """Facecam-aware vertical layout + AI hook (text + voice) + PNG captions."""
-    if getattr(config, "edit", None) is not None and config.edit.enabled:
+    import json
+
+    edit = getattr(config, "edit", None)
+    if edit is not None and edit.enabled and not _classic_turn(mp4_path, index, edit.classic_share):
         from .director import render_directed
 
         return render_directed(mp4_path, transcript, start, end, index, out_path, config, pr)
-    import json
+    if edit is not None and edit.enabled:  # log the classic format too, for the ledger
+        out_path.with_suffix(".edit.json").write_text(json.dumps(
+            {"summary": {"format": "classic", "layouts": ["stack"], "cold_open": False}}), encoding="utf-8")
     import re
 
     from .captions_png import write_caption_track
