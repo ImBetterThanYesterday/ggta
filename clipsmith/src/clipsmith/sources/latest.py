@@ -6,7 +6,7 @@ import json
 import subprocess  # nosec B404
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import httpx
 
@@ -89,6 +89,13 @@ def youtube_past(streamer: str, handle: str, n: int = 5) -> list[PastStream]:
 
 def latest_finished(entry: dict, game: str = "gta", min_hours: float = 0.5) -> PastStream | None:
     """Most recent finished stream across all of the streamer's channels."""
+    found = recent_finished(entry, game=game, days=0, min_hours=min_hours)
+    return found[0] if found else None
+
+
+def recent_finished(entry: dict, game: str = "gta", days: float = 7,
+                    min_hours: float = 0.5) -> list[PastStream]:
+    """Finished streams of the last `days` days, newest first (days=0: only the latest)."""
     cands: list[PastStream] = []
     fns = {"twitch": twitch_past, "kick": kick_past, "youtube": youtube_past}
     for platform, handle in (entry.get("channels") or {}).items():
@@ -100,4 +107,8 @@ def latest_finished(entry: dict, game: str = "gta", min_hours: float = 0.5) -> P
             continue
     cands = [c for c in cands if _matches(game, c.title, c.game) and c.duration_s >= min_hours * 3600]
     # YouTube flat listings often lack exact dates: prefer longer, then newer
-    return max(cands, key=lambda c: (c.started_at.date(), c.duration_s), default=None)
+    cands.sort(key=lambda c: (c.started_at.date(), c.duration_s), reverse=True)
+    if days <= 0:
+        return cands[:1]
+    since = datetime.now(UTC) - timedelta(days=days)
+    return [c for i, c in enumerate(cands) if i == 0 or c.started_at >= since]
