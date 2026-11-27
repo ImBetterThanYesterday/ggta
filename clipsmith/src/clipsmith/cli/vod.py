@@ -66,8 +66,11 @@ def run_vod(
     only_peaks: bool = False, bulla: bool = True, canto: bool = True,
     exclude: list[str] | None = None, streamer: str = "", lang: str = "",
     max_height: int = 1080, config_path: Path = Path("config.yaml"),
+    out_dir: Path | None = None, keep_source: bool = True,
 ) -> list[Path]:
     cfg = load_config(_resolve_config(config_path))
+    if out_dir:
+        cfg.out_dir = out_dir
     secrets = load_secrets()
     work = cfg.work_dir.expanduser()
 
@@ -131,6 +134,7 @@ def run_vod(
         start = max(0.0, p.t - p_pre)
         end = min(vc.duration_s or p.t + p_post, p.t + p_post)
         console.rule(f"[bold]{name} {i}/{len(peaks)}  {_hms(p.t)}[/bold]")
+        wdir = None
         try:
             res = fetch_source(url, work, start_s=start, end_s=end, max_height=max_height,
                                id_suffix=f"_p{int(p.t)}", chat_messages=vc.messages)
@@ -156,6 +160,10 @@ def run_vod(
                              start, name, vc.platform, url, vc.title, vc.started_at)
         except Exception as exc:
             console.print(f"[red]momento {i} falló: {exc}[/red]")
+        finally:
+            if not keep_source and wdir:  # archive runs: keep the clip, drop the ~120 MB source cut
+                for src in wdir.glob("*.mp4"):
+                    src.unlink(missing_ok=True)
 
     console.print(f"\n[green]Listo:[/green] {len(made)} clip(s) nuevos en {final_dir}")
     for c in made:

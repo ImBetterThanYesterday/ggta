@@ -321,7 +321,7 @@ HOOK_RULES = (
     "streamer's exact name unless the hook type reads better without it. voiceover 6–11 words "
     "(used only when hook_style=voice_text: quiet openings that need context; it must add context "
     "or opinion, not describe what is on screen). post_title ≤70 chars; post_caption 1–2 lines with "
-    "a question; hashtags 5–8 incl. #gta6 #gtavi and the streamer."
+    "a question; hashtags 5–8: the streamer, plus #gta6 #gtavi if it is GTA, else the game/topic shown."
 )
 
 

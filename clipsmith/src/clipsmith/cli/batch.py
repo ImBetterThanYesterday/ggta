@@ -20,12 +20,15 @@ console = Console()
 def batch_cmd(
     only: list[str] = typer.Option([], "--only", help="Streamers a procesar (repetible). Vacío = todos"),
     roster: Path = typer.Option(Path("../streamers.yaml"), "--roster"),
-    game: str = typer.Option("gta", "--game", help="Solo directos de este juego ('' = cualquiera)"),
+    game: str = typer.Option("gta", "--game", help="Solo este juego; '!gta' = todo menos GTA; '' = cualquiera"),
     top: int = typer.Option(12, "--top", help="Momentos a revisar por directo"),
     tier: int = typer.Option(2, "--tier"),
     days: float = typer.Option(7, "--days", help="Directos de los últimos N días aún sin cortar (0 = solo el último)"),
     max_streams: int = typer.Option(3, "--max-streams", help="Máximo de directos por streamer"),
     config_path: Path = typer.Option(Path("config.yaml"), "--config", "-c"),
+    out: Path = typer.Option(None, "--out", help="Carpeta de salida (default: out_dir del config)"),
+    keep_source: bool = typer.Option(True, "--keep-source/--drop-source",
+                                     help="Borrar el video fuente de work/ tras cortar el clip"),
 ) -> None:
     """For each streamer: every finished stream of the last `--days` days not cut yet -> `vod`."""
     configure_logging(verbose=False)
@@ -53,7 +56,7 @@ def batch_cmd(
                           f"{ps.title[:70]!r}\n{ps.url}")
             try:
                 made = run_vod(ps.url, top=top, streamer=s["name"], lang=s.get("lang", "es"),
-                               config_path=config_path)
+                               config_path=config_path, out_dir=out, keep_source=keep_source)
                 summary.append((s["name"], ps.url, len(made)))
             except Exception as exc:
                 console.print(f"[red]{s['name']} falló: {exc}[/red]")

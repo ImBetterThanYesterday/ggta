@@ -67,7 +67,7 @@ First think of 5 different candidate hooks, then output only the single most dis
 Language: {lang}. Voice-over must be SHORT: 6–11 words (~2.5–3.5 s spoken), punchy, natural.
 hook_text: 3–7 words, UPPERCASE, can differ slightly from the voice-over.
 post_title: ≤ 70 chars for YouTube Shorts. post_caption: 1–2 lines for TikTok/IG with a
-question to drive comments. hashtags: 5–8 (include #gta6 #gtavi and the streamer).
+question to drive comments. hashtags: 5–8 (the streamer, plus #gta6 #gtavi if it is GTA, else the game/topic shown).
 
 Streamer: {streamer}
 Stream title: {stream_title}

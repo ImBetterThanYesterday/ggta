@@ -23,9 +23,13 @@ class PastStream:
     game: str
     duration_s: float
     started_at: datetime
+    dated: bool = True  # False: YouTube listing without a date (started_at is a guess)
 
 
 def _matches(game_filter: str, title: str, game: str) -> bool:
+    """'gta' = only GTA streams, '!gta' = everything except GTA, '' = any."""
+    if game_filter.startswith("!"):
+        return not _matches(game_filter[1:], title, game)
     if not game_filter:
         return True
     hay = f"{title} {game}".lower()
@@ -83,7 +87,8 @@ def youtube_past(streamer: str, handle: str, n: int = 5) -> list[PastStream]:
         ts = e.get("release_timestamp") or e.get("timestamp")
         started = datetime.fromtimestamp(ts, UTC) if ts else datetime.now(UTC)
         res.append(PastStream(streamer, "youtube", f"https://www.youtube.com/watch?v={e['id']}",
-                              e.get("title") or "", "", float(e.get("duration") or 0), started))
+                              e.get("title") or "", "", float(e.get("duration") or 0), started,
+                              dated=bool(ts)))
     return res
 
 
@@ -111,4 +116,11 @@ def recent_finished(entry: dict, game: str = "gta", days: float = 7,
     if days <= 0:
         return cands[:1]
     since = datetime.now(UTC) - timedelta(days=days)
-    return [c for i, c in enumerate(cands) if i == 0 or c.started_at >= since]
+    out, seen = [], set()
+    for i, c in enumerate(cands):
+        key = (c.started_at.date(), round(c.duration_s / 600))  # same stream on two platforms
+        if key in seen or not c.dated or (i and c.started_at < since):
+            continue
+        seen.add(key)
+        out.append(c)
+    return out
